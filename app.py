@@ -1,42 +1,41 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Aug 12 17:27:38 2023
+Created on Sun Aug 13 12:58:18 2023
 
 @author: pc
 """
-from typing import Annotated
-from fastapi import FastAPI, Form
+
+from fastapi import FastAPI
 import uvicorn
-import asyncio
-from Summary import summarization
-import pickle
-from transformers import pipeline
+from Predictions import predict
+import numpy as np
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
+
 app=FastAPI()
 
-pickle_in=open('summarizer_pipeline.pkl','rb')
-summarizer=pickle.load(pickle_in)
+@app.get('/')
+def index():
+    return{'Hello':'message'}
 
+@app.post('/predict')
+def disease_severity(data:predict):
+    input_text=data.text
+    tfidf_vectorizer=TfidfVectorizer(max_features=1000)
+    input_texts = [input_text]
+    input = tfidf_vectorizer.fit_transform(input_texts)
+    # input=tfidf_vectorizer.transform(input_text.astype(str))
+    svm_classifier=SVC(kernel='linear')
+    target_labels = [0,1,2] 
+    svm_classifier.fit(input,target_labels)
+    prediction=svm_classifier.predict(input)
+    input=tfidf_vectorizer.transform([input_text])
 
-@app.post('/summary')
-def summary(data:summarization):
-    input_text = data.document
-    summarizer = pipeline(
-        task="summarization",
-        model="t5-small",
-        min_length=20,
-        max_length=40,
-        truncation=True,
-        model_kwargs={"cache_dir": 'C://Users//pc//Desktop//New folder//Cache Folder'},
-    ) 
-    
-    #input_text = "Enter the text you want to summarize: "
-    summarize=summarizer(input_text, max_length=100, min_length=30, do_sample=False)[0]['summary_text']
-    bullet_points = summarize.split(". ")
-
-    for point in bullet_points:
-        
-        print(f"- {point}")
-    return {'summary':summarize}
+    print(f"Prediction :{prediction[0]}")
+    return{'Prediction':prediction}
 
 if __name__ == '__main__':
     uvicorn.run(app, host='127.0.0.1', port=8000)
