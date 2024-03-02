@@ -4,4 +4,4 @@ Patient-Doctor Summarizer --> Disease --> Disease Severity --> Future Medication
 
 Technology Used:-
 Jupyter Notebook.
-FastAPIs.
+FastAPI.
